@@ -68,7 +68,7 @@ const app = new Elysia()
   .use(currentDbRoutes)
   .use(switchDbRoutes)
   .use(searchTextRoutes)
-  .listen(3000);
+  .listen(5555);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
