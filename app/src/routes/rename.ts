@@ -1,24 +1,19 @@
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
+import { setCollectionTimestamp } from "../utils/cache";
 
 export const renameRoutes = new Elysia()
-  .put("/rename/:currentCollectionName", async ({ params, body, set }) => {
-    const currentCollectionName = decodeURIComponent(params.currentCollectionName);
-    const newCollectionName = (body as { newCollectionName: string }).newCollectionName.trim();
-
-    if (!newCollectionName || !/^[a-zA-Z0-9_]+$/.test(newCollectionName)) {
-      set.status = 400;
-      return { message: "Invalid collection name: Does not match naming convention" };
-    }
-
+  .post("/rename/:oldName/:newName", async ({ params }) => {
+    const { oldName, newName } = params;
     const db = client.db(DatabaseStore.MESSAGE_DATABASE);
-    const currentCollection = db.collection(currentCollectionName);
-    await currentCollection.rename(newCollectionName);
 
-    return { message: `Collection renamed to ${newCollectionName}` };
-  }, {
-    body: t.Object({
-      newCollectionName: t.String()
-    })
+    try {
+      await db.collection(oldName).rename(newName);
+      await setCollectionTimestamp(newName);
+      return { message: `Collection renamed from ${oldName} to ${newName}` };
+    } catch (error) {
+      console.error("Failed to rename collection:", error);
+      throw new Error("Failed to rename collection");
+    }
   });

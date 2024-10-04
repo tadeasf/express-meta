@@ -19,6 +19,7 @@ import { renameRoutes } from './routes/rename';
 import { searchRoutes } from './routes/search';
 import { deleteRoutes } from './routes/delete';
 import { uploadRoutes } from './routes/upload';
+import { serveInboxRoutes } from "./routes/serveInbox";
 import { redisCommand, redisSubscribe, DatabaseStore } from './utils/redis';
 
 // Load environment variables
@@ -36,14 +37,14 @@ redisSubscribe.on('message', (channel, message) => {
 });
 
 const app = new Elysia()
-.use(swagger({
-  documentation: {
-    info: {
-      title: 'Meta Messenger API',
-      version: '1.0.0',
+  .use(swagger({
+    documentation: {
+      info: {
+        title: 'Meta Messenger API',
+        version: '1.0.0',
+      },
     },
-  },
-}))
+  }))
   .use(cors())
   .use(
     compression({
@@ -55,19 +56,20 @@ const app = new Elysia()
   .decorate('redis', redisCommand)
   .decorate('databaseStore', DatabaseStore)
   .get('/', () => 'Hi, Blackbox, grab some data! omnomnomnom...')
-.use(collectionsRoutes)
-.use(messagesRoutes)
-.use(photosRoutes)
-.use(renameRoutes)
-.use(searchRoutes)
-.use(deleteRoutes)
-.use(uploadRoutes)
+  .use(collectionsRoutes)
+  .use(messagesRoutes)
+  .use(photosRoutes)
+  .use(renameRoutes)
+  .use(searchRoutes)
+  .use(deleteRoutes)
+  .use(uploadRoutes)
   .use(stressTestRoutes)
   .use(loadCpuRoutes)
   .use(flushRedisRoutes)
   .use(currentDbRoutes)
   .use(switchDbRoutes)
   .use(searchTextRoutes)
+  .use(serveInboxRoutes)
   .listen(5555);
 
 console.log(

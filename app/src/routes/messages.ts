@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
-import { getCachedData, setCachedData } from "../utils/cache";
+import { getCachedData, setCachedData, getCollectionTimestamp, setCollectionTimestamp } from "../utils/cache";
 
 export const messagesRoutes = new Elysia()
   .get("/messages/:collectionName", async ({ params, query }) => {
@@ -12,28 +12,31 @@ export const messagesRoutes = new Elysia()
     const toDate = query.toDate
       ? new Date(`${query.toDate}T23:59:59Z`).getTime()
       : null;
-    const cacheKey = `messages-${collectionName}-${fromDate}-${toDate}`;
+
+    const collectionTimestamp = await getCollectionTimestamp(collectionName);
+    const cacheKey = `messages-${collectionName}-${collectionTimestamp}-${fromDate}-${toDate}`;
 
     try {
-      let cachedData = await getCachedData(cacheKey);
-      
+      const cachedData = await getCachedData(cacheKey);
       if (cachedData) {
+        console.log(`Cache hit for ${cacheKey}`);
         return cachedData;
       }
 
+      console.log(`Cache miss for ${cacheKey}. Fetching from DB.`);
       const db = client.db(DatabaseStore.MESSAGE_DATABASE);
       const collection = db.collection(collectionName);
 
       const pipeline = [
         ...(fromDate !== null || toDate !== null
           ? [
-              {
-                $match: {
-                  ...(fromDate !== null && { timestamp_ms: { $gte: fromDate } }),
-                  ...(toDate !== null && { timestamp_ms: { $lte: toDate } }),
-                },
+            {
+              $match: {
+                ...(fromDate !== null && { timestamp_ms: { $gte: fromDate } }),
+                ...(toDate !== null && { timestamp_ms: { $lte: toDate } }),
               },
-            ]
+            },
+          ]
           : []),
         { $sort: { timestamp_ms: 1 } },
         {
@@ -51,7 +54,7 @@ export const messagesRoutes = new Elysia()
 
       const messages = await collection.aggregate(pipeline).toArray();
 
-      await setCachedData(cacheKey, messages);
+      await setCachedData(cacheKey, messages, 3600); // Cache for 1 hour
 
       return messages;
     } catch (error) {

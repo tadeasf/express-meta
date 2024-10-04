@@ -4,11 +4,19 @@ import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
 import { getCachedData, setCachedData } from "../utils/cache";
 import path from "path";
+import fs from "fs/promises";
+
+const PHOTOS_DIR = path.join(__dirname, "..", "..", "photos");
+const INBOX_DIR = path.join(__dirname, "..", "..", "inbox");
 
 export const photosRoutes = new Elysia()
   .use(staticPlugin({
-    assets: path.join(__dirname, "..", "..", "photos"),
+    assets: PHOTOS_DIR,
     prefix: "/photos"
+  }))
+  .use(staticPlugin({
+    assets: INBOX_DIR,
+    prefix: "/inbox"
   }))
   .get("/photos/:collectionName", async ({ params }) => {
     const collectionName = decodeURIComponent(params.collectionName);
@@ -16,7 +24,7 @@ export const photosRoutes = new Elysia()
 
     try {
       let cachedData = await getCachedData(cacheKey);
-      
+
       if (cachedData) {
         return cachedData;
       }
@@ -66,6 +74,33 @@ export const photosRoutes = new Elysia()
 
     const photoUrl = `https://${request.headers.get('host')}/photos/${sanitizedCollectionName}.jpg`;
     return { isPhotoAvailable: true, photoUrl: photoUrl };
+  })
+  .get("/serve/photo/:collectionName", async ({ params, set }) => {
+    const sanitizedCollectionName = sanitizeName(decodeURIComponent(params.collectionName));
+
+    // Check both photos and inbox directories
+    const photoPath = path.join(PHOTOS_DIR, `${sanitizedCollectionName}.jpg`);
+    const inboxPhotoPath = path.join(INBOX_DIR, sanitizedCollectionName, 'photos');
+
+    try {
+      await fs.access(photoPath);
+      set.headers['Content-Type'] = 'image/jpeg';
+      return Bun.file(photoPath);
+    } catch {
+      try {
+        const files = await fs.readdir(inboxPhotoPath);
+        if (files.length > 0) {
+          const firstPhotoPath = path.join(inboxPhotoPath, files[0]);
+          set.headers['Content-Type'] = 'image/jpeg';
+          return Bun.file(firstPhotoPath);
+        }
+      } catch {
+        // No photos found
+      }
+    }
+
+    set.status = 404;
+    return "Photo not found";
   });
 
 function sanitizeName(name: string): string {

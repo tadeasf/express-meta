@@ -2,6 +2,11 @@ import { Elysia, t } from 'elysia';
 import { client } from '../utils/mongo';
 import { DatabaseStore } from '../utils/redis';
 import { combine_and_convert_json_files } from '../utils/metaDecoder/jsonCombiner';
+import path from 'path';
+import fs from 'fs/promises';
+
+const INBOX_DIR = path.join(__dirname, '..', '..', 'inbox');
+const PHOTOS_DIR = path.join(__dirname, '..', '..', 'photos');
 
 export const uploadRoutes = new Elysia()
   .post('/upload', async ({ body }) => {
@@ -28,6 +33,23 @@ export const uploadRoutes = new Elysia()
     const collection = db.collection(collectionName);
     await collection.insertMany(messages);
 
+    // Handle photo uploads
+    const inboxCollectionDir = path.join(INBOX_DIR, collectionName);
+    const photosDir = path.join(inboxCollectionDir, 'photos');
+
+    try {
+      await fs.mkdir(photosDir, { recursive: true });
+
+      for (const file of files) {
+        if (file.filename.match(/\.(jpg|jpeg|png|gif)$/i)) {
+          const destPath = path.join(photosDir, file.filename);
+          await fs.copyFile(file.path, destPath);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling photo uploads:', error);
+    }
+
     return {
       message: `Messages uploaded to collection: ${collectionName}`,
       collectionName: collectionName,
@@ -36,7 +58,8 @@ export const uploadRoutes = new Elysia()
   }, {
     body: t.Object({
       files: t.Array(t.Object({
-        path: t.String()
+        path: t.String(),
+        filename: t.String()
       }))
     })
   });
@@ -45,5 +68,6 @@ function normalizeAndSanitize(str: string): string {
   return str
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '');
+    .replace(/\s+/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '');
 }

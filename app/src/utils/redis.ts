@@ -10,12 +10,10 @@ export const redisSubscribe = new Redis({
   host: "127.0.0.1",
 });
 
-// Create a store for the MESSAGE_DATABASE
 export const DatabaseStore = {
   MESSAGE_DATABASE: "messages",
 };
 
-// Subscribe to Redis channel for DB name updates
 redisSubscribe.subscribe("DB_SWITCH_CHANNEL", (err, count) => {
   if (err) {
     console.error("Failed to subscribe: %s", err.message);
