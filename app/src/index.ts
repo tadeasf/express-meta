@@ -39,6 +39,8 @@ redisSubscribe.on('message', (channel, message) => {
 const apiKeyMiddleware = new Elysia()
   .onRequest(({ request, set }) => {
     const apiKey = request.headers.get('x-api-key');
+    console.log('Received API Key:', apiKey);
+    console.log('Expected API Key:', process.env.API_KEY);
     if (!apiKey || apiKey !== process.env.API_KEY) {
       set.status = 401;
       return 'Unauthorized';
