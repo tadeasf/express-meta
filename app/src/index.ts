@@ -55,17 +55,13 @@ const app = new Elysia()
     },
   }))
   .use(cors())
-  .use(
-    compression({
-      as: 'scoped',
-    }),
-  )
+  .use(compression({ as: 'scoped' }))
   .use(logger())
   .decorate('db', () => client.db(DatabaseStore.MESSAGE_DATABASE))
   .decorate('redis', redisCommand)
   .decorate('databaseStore', DatabaseStore)
+  .use(apiKeyMiddleware)
   .get('/', () => 'Hi, Blackbox, grab some data! omnomnomnom...')
-  .use(apiKeyMiddleware) // Apply API key middleware to all routes below this line
   .use(collectionsRoutes)
   .use(messagesRoutes)
   .use(photosRoutes)
