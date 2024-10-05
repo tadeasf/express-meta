@@ -3,7 +3,13 @@ import { redisCommand } from "./redis";
 export async function getCachedData(key: string) {
   try {
     const cachedData = await redisCommand.get(key);
-    return cachedData ? JSON.parse(cachedData) : null;
+    if (cachedData) {
+      console.log(`Cache hit for key: ${key}`);
+      return JSON.parse(cachedData);
+    } else {
+      console.log(`Cache miss for key: ${key}`);
+      return null;
+    }
   } catch (error) {
     console.error("Redis error, falling back to database:", error);
     return null;
@@ -13,16 +19,8 @@ export async function getCachedData(key: string) {
 export async function setCachedData(key: string, data: any, expiryInSeconds: number = 3600) {
   try {
     await redisCommand.set(key, JSON.stringify(data), "EX", expiryInSeconds);
+    console.log(`Cache set for key: ${key}`);
   } catch (error) {
     console.error("Failed to save data to Redis:", error);
   }
-}
-
-export async function getCollectionTimestamp(collectionName: string): Promise<string> {
-  const timestamp = await redisCommand.get(`collection-timestamp:${collectionName}`);
-  return timestamp || Date.now().toString();
-}
-
-export async function setCollectionTimestamp(collectionName: string): Promise<void> {
-  await redisCommand.set(`collection-timestamp:${collectionName}`, Date.now().toString());
 }

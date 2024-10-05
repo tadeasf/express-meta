@@ -62,6 +62,34 @@ export const uploadRoutes = new Elysia()
         filename: t.String()
       }))
     })
+  })
+  .post('/upload/photo/:collectionName', async ({ params, body }) => {
+    const sanitizedCollectionName = normalizeAndSanitize(decodeURIComponent(params.collectionName));
+    const photoDir = path.join(PHOTOS_DIR, sanitizedCollectionName);
+
+    try {
+      await fs.mkdir(photoDir, { recursive: true });
+      const photoPath = path.join(photoDir, `${sanitizedCollectionName}.jpg`);
+
+      // Assuming the photo is sent as a base64 encoded string
+      const photoData = Buffer.from(body.photo, 'base64');
+
+      await fs.writeFile(photoPath, photoData);
+
+      // Update the collection in MongoDB to indicate it has a photo
+      const db = client.db(DatabaseStore.MESSAGE_DATABASE);
+      const collection = db.collection(sanitizedCollectionName);
+      await collection.updateOne({}, { $set: { photo: true } }, { upsert: true });
+
+      return { message: "Photo uploaded successfully" };
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      throw new Error("Failed to upload photo");
+    }
+  }, {
+    body: t.Object({
+      photo: t.String()
+    })
   });
 
 function normalizeAndSanitize(str: string): string {

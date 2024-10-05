@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
-import { getCachedData, setCachedData, setCollectionTimestamp } from "../utils/cache";
+import { getCachedData, setCachedData} from "../utils/cache";
 import path from "path";
 import fs from "fs/promises";
 
@@ -119,9 +119,6 @@ export const photosRoutes = new Elysia()
       const db = client.db(DatabaseStore.MESSAGE_DATABASE);
       const collection = db.collection(sanitizedCollectionName);
       await collection.updateOne({}, { $set: { photo: true } }, { upsert: true });
-
-      // Update the collection timestamp to invalidate caches
-      await setCollectionTimestamp(sanitizedCollectionName);
 
       return { message: "Photo uploaded successfully" };
     } catch (error) {

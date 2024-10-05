@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
-import { getCachedData, setCachedData, getCollectionTimestamp } from "../utils/cache";
+import { getCachedData, setCachedData } from "../utils/cache";
 
 export const messagesRoutes = new Elysia()
   .get("/messages/:collectionName", async ({ params, query }) => {
@@ -12,15 +12,13 @@ export const messagesRoutes = new Elysia()
     const toDate = query.toDate
       ? new Date(`${query.toDate}T23:59:59Z`).getTime()
       : null;
-
-    const collectionTimestamp = await getCollectionTimestamp(collectionName);
     const cacheKey = `messages-${collectionName}-${fromDate}-${toDate}`;
 
     try {
       const cachedData = await getCachedData(cacheKey);
-      if (cachedData && cachedData.timestamp === collectionTimestamp) {
-        console.log(`Cache hit for ${cacheKey}`);
-        return cachedData.data;
+      if (cachedData) {
+        console.log(`Returning cached data for ${cacheKey}`);
+        return cachedData;
       }
 
       console.log(`Cache miss for ${cacheKey}. Fetching from DB.`);
@@ -30,13 +28,13 @@ export const messagesRoutes = new Elysia()
       const pipeline = [
         ...(fromDate !== null || toDate !== null
           ? [
-            {
-              $match: {
-                ...(fromDate !== null && { timestamp_ms: { $gte: fromDate } }),
-                ...(toDate !== null && { timestamp_ms: { $lte: toDate } }),
+              {
+                $match: {
+                  ...(fromDate !== null && { timestamp_ms: { $gte: fromDate } }),
+                  ...(toDate !== null && { timestamp_ms: { $lte: toDate } }),
+                },
               },
-            },
-          ]
+            ]
           : []),
         { $sort: { timestamp_ms: 1 } },
         {
@@ -54,7 +52,8 @@ export const messagesRoutes = new Elysia()
 
       const messages = await collection.aggregate(pipeline).toArray();
 
-      await setCachedData(cacheKey, { timestamp: collectionTimestamp, data: messages }, 3600);
+      await setCachedData(cacheKey, messages, 36000); // Cache for 10 hours
+      console.log(`Cached data set for ${cacheKey}`);
 
       return messages;
     } catch (error) {
