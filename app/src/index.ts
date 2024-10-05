@@ -15,7 +15,6 @@ import { searchTextRoutes } from './routes/searchText';
 import { collectionsRoutes } from './routes/collections';
 import { messagesRoutes } from './routes/messages';
 import { photosRoutes } from './routes/photos';
-import { renameRoutes } from './routes/rename';
 import { searchRoutes } from './routes/search';
 import { deleteRoutes } from './routes/delete';
 import { uploadRoutes } from './routes/upload';
@@ -70,7 +69,6 @@ const app = new Elysia()
   .use(collectionsRoutes)
   .use(messagesRoutes)
   .use(photosRoutes)
-  .use(renameRoutes)
   .use(searchRoutes)
   .use(deleteRoutes)
   .use(uploadRoutes)
