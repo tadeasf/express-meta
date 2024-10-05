@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
@@ -115,10 +115,19 @@ export const photosRoutes = new Elysia()
     try {
       await fs.mkdir(photoDir, { recursive: true });
       const photoPath = path.join(photoDir, `${sanitizedCollectionName}.jpg`);
-      
-      const photoData = Buffer.isBuffer(body) ? body : Buffer.from(body as ArrayBuffer);
-      
-      await fs.writeFile(photoPath, photoData);
+
+      // Ensure that body.photo is a string (base64 encoded image)
+      if (typeof body.photo !== 'string') {
+        throw new Error('Invalid photo data');
+      }
+
+      // Remove potential data URL prefix
+      const base64Data = body.photo.replace(/^data:image\/\w+;base64,/, '');
+
+      // Convert base64 to buffer
+      const photoBuffer = Buffer.from(base64Data, 'base64');
+
+      await fs.writeFile(photoPath, photoBuffer);
 
       const db = client.db(DatabaseStore.MESSAGE_DATABASE);
       const collection = db.collection(sanitizedCollectionName);
@@ -129,6 +138,10 @@ export const photosRoutes = new Elysia()
       console.error("Error uploading photo:", error);
       throw new Error("Failed to upload photo");
     }
+  }, {
+    body: t.Object({
+      photo: t.String()
+    })
   });
 
 function sanitizeName(name: string): string {
