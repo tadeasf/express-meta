@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
-import { getCachedData, setCachedData, getCollectionTimestamp, setCollectionTimestamp } from "../utils/cache";
+import { getCachedData, setCachedData, getCollectionTimestamp } from "../utils/cache";
 
 export const messagesRoutes = new Elysia()
   .get("/messages/:collectionName", async ({ params, query }) => {
@@ -14,13 +14,13 @@ export const messagesRoutes = new Elysia()
       : null;
 
     const collectionTimestamp = await getCollectionTimestamp(collectionName);
-    const cacheKey = `messages-${collectionName}-${collectionTimestamp}-${fromDate}-${toDate}`;
+    const cacheKey = `messages-${collectionName}-${fromDate}-${toDate}`;
 
     try {
       const cachedData = await getCachedData(cacheKey);
-      if (cachedData) {
+      if (cachedData && cachedData.timestamp === collectionTimestamp) {
         console.log(`Cache hit for ${cacheKey}`);
-        return cachedData;
+        return cachedData.data;
       }
 
       console.log(`Cache miss for ${cacheKey}. Fetching from DB.`);
@@ -54,7 +54,7 @@ export const messagesRoutes = new Elysia()
 
       const messages = await collection.aggregate(pipeline).toArray();
 
-      await setCachedData(cacheKey, messages, 3600); // Cache for 1 hour
+      await setCachedData(cacheKey, { timestamp: collectionTimestamp, data: messages }, 3600);
 
       return messages;
     } catch (error) {

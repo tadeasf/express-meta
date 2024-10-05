@@ -14,7 +14,7 @@ export const collectionsRoutes = new Elysia()
 
       const db = client.db(DatabaseStore.MESSAGE_DATABASE);
       const collections = await db.listCollections().toArray();
-      const collectionNames = collections.map((c) => c.name);
+      const collectionNames = collections.map((c, index) => ({ name: c.name, index }));
 
       await setCachedData("collections", collectionNames);
 

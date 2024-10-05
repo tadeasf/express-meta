@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
-import { getCachedData, setCachedData } from "../utils/cache";
+import { getCachedData, setCachedData, setCollectionTimestamp } from "../utils/cache";
 import path from "path";
 import fs from "fs/promises";
 
@@ -101,6 +101,33 @@ export const photosRoutes = new Elysia()
 
     set.status = 404;
     return "Photo not found";
+  })
+  .post("/upload/photo/:collectionName", async ({ params, body }) => {
+    const sanitizedCollectionName = sanitizeName(decodeURIComponent(params.collectionName));
+    const photoDir = path.join(PHOTOS_DIR, sanitizedCollectionName);
+
+    try {
+      await fs.mkdir(photoDir, { recursive: true });
+      const photoPath = path.join(photoDir, `${sanitizedCollectionName}.jpg`);
+      
+      // Check if body is a Buffer or convert it to a Buffer
+      const photoData = Buffer.isBuffer(body) ? body : Buffer.from(body as ArrayBuffer);
+      
+      await fs.writeFile(photoPath, photoData);
+
+      // Update the collection in MongoDB to indicate it has a photo
+      const db = client.db(DatabaseStore.MESSAGE_DATABASE);
+      const collection = db.collection(sanitizedCollectionName);
+      await collection.updateOne({}, { $set: { photo: true } }, { upsert: true });
+
+      // Update the collection timestamp to invalidate caches
+      await setCollectionTimestamp(sanitizedCollectionName);
+
+      return { message: "Photo uploaded successfully" };
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      throw new Error("Failed to upload photo");
+    }
   });
 
 function sanitizeName(name: string): string {
