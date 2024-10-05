@@ -36,6 +36,16 @@ redisSubscribe.on('message', (channel, message) => {
   MESSAGE_DATABASE = message;
 });
 
+// API key middleware
+const apiKeyMiddleware = new Elysia()
+  .derive(({ request, set }) => {
+    const apiKey = request.headers.get('x-api-key');
+    if (!apiKey || apiKey !== process.env.API_KEY) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+  });
+
 const app = new Elysia()
   .use(swagger({
     documentation: {
@@ -56,6 +66,7 @@ const app = new Elysia()
   .decorate('redis', redisCommand)
   .decorate('databaseStore', DatabaseStore)
   .get('/', () => 'Hi, Blackbox, grab some data! omnomnomnom...')
+  .use(apiKeyMiddleware) // Apply API key middleware to all routes below this line
   .use(collectionsRoutes)
   .use(messagesRoutes)
   .use(photosRoutes)
