@@ -37,11 +37,11 @@ redisSubscribe.on('message', (channel, message) => {
 
 // API key middleware
 const apiKeyMiddleware = new Elysia()
-  .derive(({ request, set }) => {
+  .onRequest(({ request, set }) => {
     const apiKey = request.headers.get('x-api-key');
     if (!apiKey || apiKey !== process.env.API_KEY) {
       set.status = 401;
-      return { error: 'Unauthorized' };
+      return 'Unauthorized';
     }
   });
 
@@ -60,23 +60,21 @@ const app = new Elysia()
   .decorate('db', () => client.db(DatabaseStore.MESSAGE_DATABASE))
   .decorate('redis', redisCommand)
   .decorate('databaseStore', DatabaseStore)
+  .use(apiKeyMiddleware)
   .get('/', () => 'Hi, Blackbox, grab some data! omnomnomnom...')
-  .group('/api', app => app
-    .use(apiKeyMiddleware)
-    .use(collectionsRoutes)
-    .use(messagesRoutes)
-    .use(photosRoutes)
-    .use(searchRoutes)
-    .use(deleteRoutes)
-    .use(uploadRoutes)
-    .use(stressTestRoutes)
-    .use(loadCpuRoutes)
-    .use(flushRedisRoutes)
-    .use(currentDbRoutes)
-    .use(switchDbRoutes)
-    .use(searchTextRoutes)
-    .use(serveInboxRoutes)
-  )
+  .use(collectionsRoutes)
+  .use(messagesRoutes)
+  .use(photosRoutes)
+  .use(searchRoutes)
+  .use(deleteRoutes)
+  .use(uploadRoutes)
+  .use(stressTestRoutes)
+  .use(loadCpuRoutes)
+  .use(flushRedisRoutes)
+  .use(currentDbRoutes)
+  .use(switchDbRoutes)
+  .use(searchTextRoutes)
+  .use(serveInboxRoutes)
   .listen(5555);
 
 console.log(
