@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5555:5555"
+    environment:
+      - API_KEY=${API_KEY}
     env_file:
       - .env
     volumes:

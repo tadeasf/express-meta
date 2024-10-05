@@ -24,6 +24,11 @@ import { redisCommand, redisSubscribe, DatabaseStore } from './utils/redis';
 // Load environment variables
 dotenv.config();
 
+console.log('Environment variables:');
+console.log('API_KEY:', process.env.API_KEY);
+console.log('MONGODB_URI:', process.env.MONGODB_URI);
+// ... log other relevant environment variables
+
 // MongoDB setup
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const client = new MongoClient(uri);

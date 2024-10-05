@@ -30,6 +30,9 @@ COPY --from=build /app/.env .env
 
 ENV NODE_ENV=production
 
+# Add this line to print environment variables
+RUN echo "API_KEY: $API_KEY"
+
 CMD ["./server"]
 
 EXPOSE 5555
