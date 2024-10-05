@@ -23,5 +23,6 @@ inbox/*
 inbox
 inbox/
 error_log.txt
-app/uploads
+app/server
 app/photos
+app/uploads

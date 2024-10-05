@@ -1,14 +1,10 @@
 import { Redis } from "ioredis";
 
-export const redisCommand = new Redis({
-  port: 6379,
-  host: "127.0.0.1",
-});
+const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6369";
 
-export const redisSubscribe = new Redis({
-  port: 6379,
-  host: "127.0.0.1",
-});
+export const redisCommand = new Redis(redisUrl);
+
+export const redisSubscribe = new Redis(redisUrl);
 
 export const DatabaseStore = {
   MESSAGE_DATABASE: "messages",
