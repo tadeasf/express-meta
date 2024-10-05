@@ -70,10 +70,18 @@ export const uploadRoutes = new Elysia()
       await fs.mkdir(photoDir, { recursive: true });
       const photoPath = path.join(photoDir, `${sanitizedCollectionName}.jpg`);
 
-      // Assuming the photo is sent as a base64 encoded string
-      const photoData = Buffer.from(body.photo, 'base64');
+      // Ensure that body.photo is a string (base64 encoded image)
+      if (typeof body.photo !== 'string') {
+        throw new Error('Invalid photo data');
+      }
 
-      await fs.writeFile(photoPath, photoData);
+      // Remove potential data URL prefix
+      const base64Data = body.photo.replace(/^data:image\/\w+;base64,/, '');
+
+      // Convert base64 to buffer
+      const photoBuffer = Buffer.from(base64Data, 'base64');
+
+      await fs.writeFile(photoPath, photoBuffer);
 
       const db = client.db(DatabaseStore.MESSAGE_DATABASE);
       const collection = db.collection(sanitizedCollectionName);
