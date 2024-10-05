@@ -2,9 +2,9 @@ FROM oven/bun AS build
 
 WORKDIR /app
 
-# Cache packages installation
 COPY package.json package.json
 COPY bun.lockb bun.lockb
+COPY .env .env
 
 RUN bun install
 
@@ -26,8 +26,7 @@ WORKDIR /app
 
 COPY --from=build /app/server server
 COPY --from=build /app/src ./src
-
-# We don't need to create directories as they'll be mounted as volumes
+COPY --from=build /app/.env .env
 
 ENV NODE_ENV=production
 
