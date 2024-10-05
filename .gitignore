@@ -23,3 +23,5 @@ inbox/*
 inbox
 inbox/
 error_log.txt
+app/uploads
+app/photos
