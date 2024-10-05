@@ -70,6 +70,7 @@ export const uploadRoutes = new Elysia()
       await fs.mkdir(photoDir, { recursive: true });
       const photoPath = path.join(photoDir, `${sanitizedCollectionName}.jpg`);
 
+      // Assuming the photo is sent as a base64 encoded string
       const photoData = Buffer.from(body.photo, 'base64');
 
       await fs.writeFile(photoPath, photoData);
