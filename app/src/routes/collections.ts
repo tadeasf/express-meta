@@ -1,7 +1,5 @@
 import { Elysia } from "elysia";
-import { client } from "../utils/mongo";
-import { DatabaseStore } from '../utils/redis';
-import { getCachedData, setCachedData } from "../utils/cache";
+import { getCachedData, updateCollectionsCache } from "../utils/cache";
 
 export const collectionsRoutes = new Elysia()
   .get("/collections", async () => {
@@ -12,13 +10,10 @@ export const collectionsRoutes = new Elysia()
         return cachedData;
       }
 
-      const db = client.db(DatabaseStore.MESSAGE_DATABASE);
-      const collections = await db.listCollections().toArray();
-      const collectionNames = collections.map((c, index) => ({ name: c.name, index }));
+      await updateCollectionsCache();
+      cachedData = await getCachedData("collections");
 
-      await setCachedData("collections", collectionNames);
-
-      return collectionNames.length > 0 ? collectionNames : { error: "No data found" };
+      return cachedData || { error: "No data found" };
     } catch (error) {
       console.error(error);
       throw new Error("Internal Server Error");
@@ -33,13 +28,10 @@ export const collectionsRoutes = new Elysia()
         return cachedData;
       }
 
-      const db = client.db(DatabaseStore.MESSAGE_DATABASE);
-      const collections = await db.listCollections().toArray();
-      const collectionNames = collections.map((c) => c.name).sort();
+      await updateCollectionsCache();
+      cachedData = await getCachedData("collectionsAlphabetical");
 
-      await setCachedData("collectionsAlphabetical", collectionNames);
-
-      return collectionNames.length > 0 ? collectionNames : { error: "No data found" };
+      return cachedData || { error: "No data found" };
     } catch (error) {
       console.error(error);
       throw new Error("Internal Server Error");

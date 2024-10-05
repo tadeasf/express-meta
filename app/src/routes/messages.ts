@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
-import { getCachedData, setCachedData } from "../utils/cache";
+import { getCachedData, setCachedData, updateCollectionsCache } from "../utils/cache";
 
 export const messagesRoutes = new Elysia()
   .get("/messages/:collectionName", async ({ params, query }) => {
@@ -54,6 +54,9 @@ export const messagesRoutes = new Elysia()
 
       await setCachedData(cacheKey, messages, 36000); // Cache for 10 hours
       console.log(`Cached data set for ${cacheKey}`);
+
+      // Update collections cache after fetching messages
+      await updateCollectionsCache();
 
       return messages;
     } catch (error) {
