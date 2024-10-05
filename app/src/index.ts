@@ -27,7 +27,11 @@ dotenv.config();
 console.log('Environment variables:');
 console.log('API_KEY:', process.env.API_KEY);
 console.log('MONGODB_URI:', process.env.MONGODB_URI);
-// ... log other relevant environment variables
+console.log('MONGODB_DB_NAME:', process.env.MONGODB_DB_NAME);
+console.log('GITHUB_TOKEN:', process.env.GITHUB_TOKEN);
+console.log('USERNAME:', process.env.USERNAME);
+console.log('PASSWORD:', process.env.PASSWORD);
+console.log('REDIS_URL:', process.env.REDIS_URL);
 
 // MongoDB setup
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';

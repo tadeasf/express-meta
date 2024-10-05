@@ -6,9 +6,15 @@ services:
     ports:
       - "5555:5555"
     environment:
+      - NODE_ENV=production
+      - PORT=5555
       - API_KEY=${API_KEY}
-    env_file:
-      - .env
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
+      - REDIS_URL=redis://redis:6380
     volumes:
       - ./uploads:/app/uploads
       - ./photos:/app/photos
@@ -22,8 +28,9 @@ services:
 
   redis:
     image: redis:alpine
+    command: redis-server --port 6380
     ports:
-      - "6369:6379"
+      - "6380:6380"
     volumes:
       - redis-data:/data
     restart: unless-stopped

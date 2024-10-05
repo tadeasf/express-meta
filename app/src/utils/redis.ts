@@ -1,10 +1,24 @@
 import { Redis } from "ioredis";
 
-const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6369";
+const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6380";
+const redisOptions = {
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+  retryStrategy(times: number) {
+    const delay = Math.min(times * 50, 2000);
+    return delay;
+  },
+};
 
-export const redisCommand = new Redis(redisUrl);
+const redisClient = new Redis(redisUrl, redisOptions);
 
-export const redisSubscribe = new Redis(redisUrl);
+redisClient.on('error', (err) => {
+  console.error('Redis error:', err);
+});
+
+export const redisCommand = new Redis(redisUrl, redisOptions);
+
+export const redisSubscribe = new Redis(redisUrl, redisOptions);
 
 export const DatabaseStore = {
   MESSAGE_DATABASE: "messages",
@@ -23,4 +37,12 @@ redisSubscribe.subscribe("DB_SWITCH_CHANNEL", (err, count) => {
 redisSubscribe.on("message", (channel, message) => {
   console.log(`Received the following message from ${channel}: ${message}`);
   DatabaseStore.MESSAGE_DATABASE = message;
+});
+
+redisCommand.on('error', (err) => {
+  console.error('Redis command error:', err);
+});
+
+redisSubscribe.on('error', (err) => {
+  console.error('Redis subscribe error:', err);
 });
