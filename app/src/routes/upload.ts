@@ -64,12 +64,9 @@ export const uploadRoutes = new Elysia()
   })
   .post('/upload/photo/:collectionName', async ({ params, body }) => {
     const sanitizedCollectionName = normalizeAndSanitize(decodeURIComponent(params.collectionName));
-    const photoDir = path.join(PHOTOS_DIR, sanitizedCollectionName);
+    const photoPath = path.join(PHOTOS_DIR, `${sanitizedCollectionName}.jpg`);
 
     try {
-      await fs.mkdir(photoDir, { recursive: true });
-      const photoPath = path.join(photoDir, `${sanitizedCollectionName}.jpg`);
-
       // Ensure that body.photo is a string (base64 encoded image)
       if (typeof body.photo !== 'string') {
         throw new Error('Invalid photo data');
@@ -99,7 +96,7 @@ export const uploadRoutes = new Elysia()
   })
   .get('/serve/photo/:collectionName', async ({ params }) => {
     const sanitizedCollectionName = normalizeAndSanitize(decodeURIComponent(params.collectionName));
-    const photoPath = path.join(PHOTOS_DIR, sanitizedCollectionName, `${sanitizedCollectionName}.jpg`);
+    const photoPath = path.join(PHOTOS_DIR, `${sanitizedCollectionName}.jpg`);
 
     try {
       await fs.access(photoPath);
