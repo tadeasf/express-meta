@@ -18,7 +18,7 @@ export const photosRoutes = new Elysia()
     assets: INBOX_DIR,
     prefix: "/inbox"
   }))
-  .get("/photos/:collectionName", async ({ params }) => {
+  .get("/photos/:collectionName", async ({ params, request }) => {
     const collectionName = decodeURIComponent(params.collectionName);
     const cacheKey = `photos-${collectionName}`;
 
@@ -52,9 +52,17 @@ export const photosRoutes = new Elysia()
 
       const results = await collection.aggregate(pipeline).toArray();
 
-      await setCachedData(cacheKey, results, 36000); // 10 hours expiry
+      const resultsWithFullUri = results.map(result => ({
+        ...result,
+        photos: result.photos.map((photo: { uri: any; }) => ({
+          ...photo,
+          fullUri: `${request.headers.get('host')}/inbox/${photo.uri}`
+        }))
+      }));
 
-      return results;
+      await setCachedData(cacheKey, resultsWithFullUri, 36000); // 10 hours expiry
+
+      return resultsWithFullUri;
     } catch (error) {
       console.error(error);
       throw new Error("Internal Server Error");
@@ -78,7 +86,6 @@ export const photosRoutes = new Elysia()
   .get("/serve/photo/:collectionName", async ({ params, set }) => {
     const sanitizedCollectionName = sanitizeName(decodeURIComponent(params.collectionName));
 
-    // Check both photos and inbox directories
     const photoPath = path.join(PHOTOS_DIR, `${sanitizedCollectionName}.jpg`);
     const inboxPhotoPath = path.join(INBOX_DIR, sanitizedCollectionName, 'photos');
 
@@ -95,7 +102,6 @@ export const photosRoutes = new Elysia()
           return Bun.file(firstPhotoPath);
         }
       } catch {
-        // No photos found
       }
     }
 
@@ -110,12 +116,10 @@ export const photosRoutes = new Elysia()
       await fs.mkdir(photoDir, { recursive: true });
       const photoPath = path.join(photoDir, `${sanitizedCollectionName}.jpg`);
       
-      // Check if body is a Buffer or convert it to a Buffer
       const photoData = Buffer.isBuffer(body) ? body : Buffer.from(body as ArrayBuffer);
       
       await fs.writeFile(photoPath, photoData);
 
-      // Update the collection in MongoDB to indicate it has a photo
       const db = client.db(DatabaseStore.MESSAGE_DATABASE);
       const collection = db.collection(sanitizedCollectionName);
       await collection.updateOne({}, { $set: { photo: true } }, { upsert: true });
