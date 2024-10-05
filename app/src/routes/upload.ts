@@ -33,7 +33,6 @@ export const uploadRoutes = new Elysia()
     const collection = db.collection(collectionName);
     await collection.insertMany(messages);
 
-    // Handle photo uploads
     const inboxCollectionDir = path.join(INBOX_DIR, collectionName);
     const photosDir = path.join(inboxCollectionDir, 'photos');
 
@@ -71,12 +70,10 @@ export const uploadRoutes = new Elysia()
       await fs.mkdir(photoDir, { recursive: true });
       const photoPath = path.join(photoDir, `${sanitizedCollectionName}.jpg`);
 
-      // Assuming the photo is sent as a base64 encoded string
       const photoData = Buffer.from(body.photo, 'base64');
 
       await fs.writeFile(photoPath, photoData);
 
-      // Update the collection in MongoDB to indicate it has a photo
       const db = client.db(DatabaseStore.MESSAGE_DATABASE);
       const collection = db.collection(sanitizedCollectionName);
       await collection.updateOne({}, { $set: { photo: true } }, { upsert: true });
@@ -90,6 +87,19 @@ export const uploadRoutes = new Elysia()
     body: t.Object({
       photo: t.String()
     })
+  })
+  .get('/serve/photo/:collectionName', async ({ params }) => {
+    const sanitizedCollectionName = normalizeAndSanitize(decodeURIComponent(params.collectionName));
+    const photoPath = path.join(PHOTOS_DIR, sanitizedCollectionName, `${sanitizedCollectionName}.jpg`);
+
+    try {
+      await fs.access(photoPath);
+      return new Response(await fs.readFile(photoPath), {
+        headers: { 'Content-Type': 'image/jpeg' }
+      });
+    } catch (error) {
+      return new Response('Photo not found', { status: 404 });
+    }
   });
 
 function normalizeAndSanitize(str: string): string {
