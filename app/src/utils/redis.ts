@@ -1,6 +1,6 @@
 import { Redis } from "ioredis";
 
-const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6380";
+const redisUrl = process.env.REDIS_URL || "redis://redis:6380";
 const redisOptions = {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
@@ -8,6 +8,10 @@ const redisOptions = {
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
+  reconnectOnError: function (err: any) {
+    console.log('Reconnecting on error:', err);
+    return true;
+  }
 };
 
 const redisClient = new Redis(redisUrl, redisOptions);
@@ -45,4 +49,12 @@ redisCommand.on('error', (err) => {
 
 redisSubscribe.on('error', (err) => {
   console.error('Redis subscribe error:', err);
+});
+
+redisSubscribe.on('connect', () => {
+  console.log('Redis subscribe client connected');
+});
+
+redisCommand.on('connect', () => {
+  console.log('Redis command client connected');
 });
