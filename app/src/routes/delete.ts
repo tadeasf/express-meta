@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { client } from "../utils/mongo";
 import { DatabaseStore } from "../utils/redis";
 import path from "path";
@@ -43,6 +43,8 @@ export const deleteRoutes = new Elysia()
       console.error("Error deleting photo:", error);
       throw new Error("Failed to delete photo");
     }
+  }, {
+    body: t.Object({}) // Specify an empty object schema for the body
   });
 
 function sanitizeName(name: string): string {
