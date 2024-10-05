@@ -107,7 +107,11 @@ export const uploadRoutes = new Elysia()
         headers: { 'Content-Type': 'image/jpeg' }
       });
     } catch (error) {
-      return new Response('Photo not found', { status: 404 });
+      console.log(`Photo not found for collection: ${sanitizedCollectionName}`);
+      // Instead of returning a 404, return a default image or a transparent 1x1 pixel
+      return new Response(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'), {
+        headers: { 'Content-Type': 'image/gif' }
+      });
     }
   });
 
