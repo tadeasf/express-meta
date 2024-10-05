@@ -4,6 +4,8 @@ import { DatabaseStore } from "../utils/redis";
 import path from "path";
 import fs from "fs/promises";
 
+const PHOTOS_DIR = path.join(__dirname, "..", "..", "photos");
+
 export const deleteRoutes = new Elysia()
   .delete("/delete/:collectionName", async ({ params }) => {
     const collectionName = decodeURIComponent(params.collectionName);
@@ -19,25 +21,27 @@ export const deleteRoutes = new Elysia()
   })
   .delete("/delete/photo/:collectionName", async ({ params }) => {
     const sanitizedCollectionName = sanitizeName(decodeURIComponent(params.collectionName));
+    const photoPath = path.join(PHOTOS_DIR, `${sanitizedCollectionName}.jpg`);
 
-    const photoDir = path.join(__dirname, "..", "..", "photos");
-    const files = await fs.readdir(photoDir);
     const db = client.db(DatabaseStore.MESSAGE_DATABASE);
     const collection = db.collection(sanitizedCollectionName);
-    const photoFile = files.find((file) => file.startsWith(sanitizedCollectionName));
 
-    if (photoFile) {
-      const photoPath = path.join(photoDir, photoFile);
+    try {
+      await fs.access(photoPath);
       await fs.unlink(photoPath);
       await collection.updateOne({}, { $set: { photo: false } }, { upsert: true });
       return { message: "Photo deleted successfully and database updated" };
-    } else {
-      const doc = await collection.findOne({});
-      if (doc && doc.photo === true) {
-        await collection.updateOne({}, { $set: { photo: false } }, { upsert: true });
-        return { message: "Photo not found, but database updated" };
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        const doc = await collection.findOne({});
+        if (doc && doc.photo === true) {
+          await collection.updateOne({}, { $set: { photo: false } }, { upsert: true });
+          return { message: "Photo not found, but database updated" };
+        }
+        return { message: "Photo not found and nothing to update in database" };
       }
-      return { message: "Photo not found and nothing to update in database" };
+      console.error("Error deleting photo:", error);
+      throw new Error("Failed to delete photo");
     }
   });
 
